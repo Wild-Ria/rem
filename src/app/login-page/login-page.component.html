@@ -1,0 +1,55 @@
+<form [formGroup]="form" (ngSubmit)="submit()">
+  <h2>Войти в приложение</h2>
+  <div class="form-group">
+    <label for="user-name">Имя пациента</label>
+    <input type="text" id="user-name"
+           class="form-control"
+           formControlName="userName"
+           placeholder="Имя пациента">
+    <div *ngIf="form.get('userName').touched && form.get('userName').invalid">
+      <small
+        *ngIf="form.get('userName').errors.required"
+        class="validation">
+        *Это обязательное поле
+      </small>
+    </div>
+  </div>
+  <div class="form-group">
+    <label for="wifi-name">Название Wi-Fi</label>
+    <input type="text" id="wifi-name"
+           class="form-control"
+           formControlName="wifiName"
+           placeholder="Название Wi-Fi">
+    <div *ngIf="form.get('wifiName').touched && form.get('wifiName').invalid">
+      <small *ngIf="form.get('wifiName').errors.required"
+        class="validation">
+        *Это обязательное поле
+      </small>
+    </div>
+  </div>
+  <div class="form-group">
+    <label for="wifi-password">Пароль Wi-Fi</label>
+    <input type="password"id="wifi-password"
+           class="form-control"
+           formControlName="wifiPassword"
+           placeholder="Пароль Wi-Fi">
+    <div *ngIf="form.get('wifiPassword').touched && form.get('wifiPassword').invalid">
+      <small
+        *ngIf="form.get('wifiPassword').errors.required"
+        class="validation">
+        *Это обязательное поле
+      </small>
+      <small
+        *ngIf="form.get('wifiPassword').errors.minlength"
+        class="validation">
+        *Минимальная длина пароля -
+        {{form.get('wifiPassword').errors.minlength.requiredLength}}. Сейчас он
+        {{form.get('wifiPassword').errors.minlength.actualLength}} символа.
+      </small>
+    </div>
+  </div>
+  <button type="submit"
+          class="btn btn-primary"
+          [disabled]="form.invalid">Войти</button>
+  <small id="wifi-help" class="form-text text-muted">*Данные для Wifi требуются для подключения дополнительного устройства</small>
+</form>

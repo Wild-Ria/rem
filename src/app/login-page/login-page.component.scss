@@ -1,0 +1,13 @@
+form {
+  max-width: 60vw;
+  margin: 1.5rem auto;
+  display: flex;
+  flex-direction: column;
+}
+.validation {
+  color: red;
+}
+.btn[disabled] {
+  background: darkgrey;
+  border: 1px gray;
+}
