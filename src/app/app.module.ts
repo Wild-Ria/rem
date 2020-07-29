@@ -9,6 +9,7 @@ import {HttpClientModule} from '@angular/common/http';
 import { QrPageComponent } from './qr-page/qr-page.component';
 import { ChatPageComponent } from './chat-page/chat-page.component';
 import { ErrorPageComponent } from './error-page/error-page.component';
+import {QRCodeModule} from 'angularx-qrcode';
 
 @NgModule({
   declarations: [
@@ -23,7 +24,8 @@ import { ErrorPageComponent } from './error-page/error-page.component';
     AppRoutingModule,
     FormsModule,
     ReactiveFormsModule,
-    HttpClientModule
+    HttpClientModule,
+    QRCodeModule
   ],
   providers: [],
   bootstrap: [AppComponent]

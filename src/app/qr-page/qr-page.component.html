@@ -1,6 +1,8 @@
 <div class="container">
   <h2>Отсканируйте QR код дополнительным устройством</h2>
-  <div class="qr-code-wrapper"></div>
-  <a href="">Ссылка врачу</a>
+  <div class="qr-code-wrapper">
+    <qrcode [qrdata]="QRCode" [size]="256" [level]="'M'" usesvg="true"></qrcode>
+  </div>
+  <a href="{{QRCode}}">Ссылка врачу</a>
   <button class="btn btn-primary">Готово</button>
 </div>
