@@ -29,12 +29,13 @@ export class LoginPageComponent implements OnInit {
       return;
     }
     const user: User = this.form.value;
-    this.auth.login(user).subscribe(
-      () => {
-        this.form.reset();
-        // TODO make navigation and QR code generation
-        // this.router.navigate([]);
-      }
-    );
+    // this.auth.login(user).subscribe(
+    //   () => {
+    //     this.form.reset();
+    //     // TODO make navigation and QR code generation
+    //     this.router.navigate(['qr-code']);
+    //   }
+    // );
+    this.router.navigate(['qr-code']);
   }
 }
