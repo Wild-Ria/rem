@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import {FormControl, FormGroup, Validators} from '@angular/forms';
+import {User} from '../shared/interfaces';
 
 @Component({
   selector: 'rms-login-page',
@@ -24,6 +25,7 @@ export class LoginPageComponent implements OnInit {
     if (this.form.invalid) {
       return;
     }
-    console.log(this.form);
+    const user: User = this.form.value;
+    console.log(user);
   }
 }
