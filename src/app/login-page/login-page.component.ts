@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import {FormControl, FormGroup, Validators} from '@angular/forms';
 import {User} from '../shared/interfaces';
+import {AuthService} from '../shared/services/auth.service';
+import {Router} from '@angular/router';
 
 @Component({
   selector: 'rms-login-page',
@@ -11,7 +13,8 @@ export class LoginPageComponent implements OnInit {
 
   form: FormGroup;
 
-  constructor() { }
+  constructor(private auth: AuthService,
+              private router: Router) { }
 
   ngOnInit(): void {
     this.form = new FormGroup({
@@ -26,6 +29,12 @@ export class LoginPageComponent implements OnInit {
       return;
     }
     const user: User = this.form.value;
-    console.log(user);
+    this.auth.login(user).subscribe(
+      () => {
+        this.form.reset();
+        // TODO make navigation and QR code generation
+        // this.router.navigate([]);
+      }
+    );
   }
 }
