@@ -18,7 +18,7 @@ export class LoginPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.form = new FormGroup({
-      userName: new FormControl(null, [Validators.required]),
+      name: new FormControl(null, [Validators.required]),
       wifiName: new FormControl(null, [Validators.required]),
       wifiPassword: new FormControl(null, [Validators.required, Validators.minLength(8)]),
     });
@@ -29,13 +29,14 @@ export class LoginPageComponent implements OnInit {
       return;
     }
     const user: User = this.form.value;
-    // this.auth.login(user).subscribe(
-    //   () => {
-    //     this.form.reset();
-    //     // TODO make navigation and QR code generation
-    //     this.router.navigate(['qr-code']);
-    //   }
-    // );
-    this.router.navigate(['qr-code']);
+    this.auth.login(user).subscribe(
+      (res) => {
+        console.log(res);
+        this.form.reset();
+        // TODO make navigation and QR code generation
+        this.router.navigate(['qr-code']);
+      }
+    );
+    //this.router.navigate(['qr-code']);
   }
 }

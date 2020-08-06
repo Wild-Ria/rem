@@ -1,5 +1,6 @@
 export interface User {
-  userName: string;
+  name: string;
   wifiName: string;
   wifiPassword: string;
+  id?: string;
 }

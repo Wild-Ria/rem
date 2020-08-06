@@ -4,11 +4,11 @@
     <label for="user-name">Имя пациента</label>
     <input type="text" id="user-name"
            class="form-control"
-           formControlName="userName"
+           formControlName="name"
            placeholder="Имя пациента">
-    <div *ngIf="form.get('userName').touched && form.get('userName').invalid">
+    <div *ngIf="form.get('name').touched && form.get('name').invalid">
       <small
-        *ngIf="form.get('userName').errors.required"
+        *ngIf="form.get('name').errors.required"
         class="validation">
         *Это обязательное поле
       </small>
@@ -29,7 +29,7 @@
   </div>
   <div class="form-group">
     <label for="wifi-password">Пароль Wi-Fi</label>
-    <input type="password"id="wifi-password"
+    <input type="password" id="wifi-password"
            class="form-control"
            formControlName="wifiPassword"
            placeholder="Пароль Wi-Fi">
