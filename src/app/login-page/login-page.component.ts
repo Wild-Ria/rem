@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import {FormControl, FormGroup, Validators} from '@angular/forms';
-import {User} from '../shared/interfaces';
+import {ServerUser, User} from '../shared/interfaces';
 import {AuthService} from '../shared/services/auth.service';
 import {Router} from '@angular/router';
 
@@ -12,6 +12,7 @@ import {Router} from '@angular/router';
 export class LoginPageComponent implements OnInit {
 
   form: FormGroup;
+  delimeter = '|';
 
   constructor(private auth: AuthService,
               private router: Router) { }
@@ -30,13 +31,14 @@ export class LoginPageComponent implements OnInit {
     }
     const user: User = this.form.value;
     this.auth.login(user).subscribe(
-      (res) => {
-        console.log(res);
+      (res: ServerUser) => {
         this.form.reset();
-        // TODO make navigation and QR code generation
-        this.router.navigate(['qr-code']);
+        this.router.navigate(['qr-code'], {
+          queryParams: {
+            qrString: `${res.id}${this.delimeter}${user.wifiName}${this.delimeter}${user.wifiPassword}`
+          }
+        });
       }
     );
-    //this.router.navigate(['qr-code']);
   }
 }

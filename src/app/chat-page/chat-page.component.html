@@ -3,9 +3,11 @@
     <div class="main-video-stream">Отоскоп</div>
     <div class="additional-video-streams">
       <div class="left-video-stream">Врач</div>
-      <div class="right-video-stream">Юзер</div>
+      <div class="right-video-stream">
+        <video id="user-video" #userVideo></video>
+      </div>
     </div>
   </div>
-  <button class="btn btn-primary">Скрыть меня</button>
+  <button class="btn btn-primary" (click)="hideUserVideo()">Скрыть меня</button>
   <button class="btn btn-primary">Завершить сеанс</button>
 </div>

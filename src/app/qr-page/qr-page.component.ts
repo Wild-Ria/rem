@@ -1,4 +1,6 @@
 import { Component, OnInit } from '@angular/core';
+import {User} from '../shared/interfaces';
+import {ActivatedRoute, Params} from '@angular/router';
 
 @Component({
   selector: 'rms-qr-page',
@@ -8,10 +10,12 @@ import { Component, OnInit } from '@angular/core';
 export class QrPageComponent implements OnInit {
   public QRCode: string = null;
 
-  constructor() { }
+  constructor(private route: ActivatedRoute) { }
 
   ngOnInit() {
-    this.QRCode = 'http://google.com';
+    this.route.queryParams.subscribe((params: Params) => {
+      this.QRCode = params.qrString;
+    });
   }
 
 }

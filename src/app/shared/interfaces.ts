@@ -2,5 +2,9 @@ export interface User {
   name: string;
   wifiName: string;
   wifiPassword: string;
-  id?: string;
+}
+
+export interface ServerUser {
+  id: string;
+  name: string;
 }
