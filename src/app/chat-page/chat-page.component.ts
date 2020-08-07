@@ -8,7 +8,7 @@ import {Component, ElementRef, OnInit, ViewChild} from '@angular/core';
 export class ChatPageComponent implements OnInit {
   @ViewChild('userVideo') userVideoRef: ElementRef;
   userVideo: HTMLVideoElement;
-  stream: any;
+  stream: MediaStream;
 
   constructor() { }
 
