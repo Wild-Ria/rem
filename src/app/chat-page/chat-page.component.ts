@@ -27,6 +27,7 @@ export class ChatPageComponent implements OnInit {
       this.addVideoStream(this.userVideo, this.stream);
     })
     .catch(error => {
+      // TODO make UI for this
       console.error('Error accessing media devices.', error);
     });
   }
