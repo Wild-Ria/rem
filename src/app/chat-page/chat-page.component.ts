@@ -1,4 +1,5 @@
 import {Component, ElementRef, OnInit, ViewChild} from '@angular/core';
+import {ConferenceService} from '../shared/services/conference.service';
 
 @Component({
   selector: 'rms-chat-page',
@@ -6,15 +7,16 @@ import {Component, ElementRef, OnInit, ViewChild} from '@angular/core';
   styleUrls: ['./chat-page.component.scss']
 })
 export class ChatPageComponent implements OnInit {
-  @ViewChild('userVideo') userVideoRef: ElementRef;
+  @ViewChild('userVideo', { static: true }) userVideoRef: ElementRef;
   userVideo: HTMLVideoElement;
   stream: MediaStream;
 
-  constructor() { }
+  constructor(private conference: ConferenceService) { }
 
   ngOnInit() {
     this.userVideo = this.userVideoRef.nativeElement;
     this.initUserVideoStream();
+    this.conference.tryJanus();
   }
 
   initUserVideoStream(): void {
