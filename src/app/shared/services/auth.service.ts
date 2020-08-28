@@ -8,22 +8,10 @@ import {Observable} from 'rxjs';
 })
 export class AuthService {
 
-  get token(): string {
-    return '';
-  }
-
   constructor(private http: HttpClient) { }
 
   login(user: User): Observable<ServerUser> {
     return this.http.post<ServerUser>('https://d.sft.in.ua/api/login', {name: user.name});
-  }
-
-  logout() {
-
-  }
-
-  isAuthenticated(): boolean {
-    return !!this.token;
   }
 
 }

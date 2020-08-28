@@ -45,7 +45,6 @@ export class ConferenceService {
           success: (pluginHandle) => {
             this.sfutest = pluginHandle;
             Janus.log('Plugin attached! (' + this.sfutest.getPlugin() + ', id=' + this.sfutest.getId() + ')');
-            Janus.log('  -- This is a publisher/manager');
             this.registerUser('test');
           },
           error: (error) => {
@@ -56,9 +55,27 @@ export class ConferenceService {
           },
           onmessage: (msg, jsep) => {
             console.log('onmessage', msg, jsep);
+            const event = msg.videoroom;
+            switch (event) {
+              case 'joined':
+                this.myid = msg.id;
+                this.mypvtid = msg.private_id;
+                this.publishOwnFeed(true);
+                break;
+              case 'event':
+                if (msg.publishers) {
+                  console.log(msg.publishers);
+                }
+                break;
+              case 'destroyed':
+                Janus.warn('The room has been destroyed!');
+                break;
+              default:
+                console.log('No handler for event');
+            }
           },
           onlocalstream: (stream) => {
-            console.log('onlocalstream', stream);
+            this.mystream = stream;
           },
           onremotestream: (stream) => {
             console.log('onremotestream', stream);
