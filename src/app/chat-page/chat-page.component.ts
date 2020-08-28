@@ -15,8 +15,8 @@ export class ChatPageComponent implements OnInit {
 
   ngOnInit() {
     this.userVideo = this.userVideoRef.nativeElement;
-    this.initUserVideoStream();
-    this.conference.tryJanus();
+    // this.initUserVideoStream();
+    this.conference.init();
   }
 
   initUserVideoStream(): void {

@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import {User} from '../shared/interfaces';
-import {ActivatedRoute, Params} from '@angular/router';
+import {ActivatedRoute, Params, Router} from '@angular/router';
 
 @Component({
   selector: 'rms-qr-page',
@@ -10,7 +10,8 @@ import {ActivatedRoute, Params} from '@angular/router';
 export class QrPageComponent implements OnInit {
   public QRCode: string = null;
 
-  constructor(private route: ActivatedRoute) { }
+  constructor(private route: ActivatedRoute,
+              private router: Router) { }
 
   ngOnInit() {
     this.route.queryParams.subscribe((params: Params) => {
@@ -18,4 +19,11 @@ export class QrPageComponent implements OnInit {
     });
   }
 
+  onReadyButtonClick($event: MouseEvent) {
+    this.router.navigate(['chat-room'], {
+      queryParams: {
+        params: this.QRCode
+      }
+    });
+  }
 }
