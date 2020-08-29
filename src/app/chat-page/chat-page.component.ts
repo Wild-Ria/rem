@@ -1,6 +1,7 @@
 import {Component, ElementRef, OnInit, ViewChild} from '@angular/core';
 import {Janus} from 'janus-gateway';
 import {ActivatedRoute, Params} from '@angular/router';
+import {environment} from '../../environments/environment';
 
 @Component({
   selector: 'rms-chat-page',
@@ -21,12 +22,15 @@ export class ChatPageComponent implements OnInit {
   private myid = null;
   private mystream = null;
   private mypvtid = null;
+  private isDoc = false;
 
   constructor(private route: ActivatedRoute) { }
 
   ngOnInit() {
     this.route.queryParams.subscribe((params: Params) => {
-      this.myroom = Number(params.params.split('|')[0]);
+      const paramsArray = params.params.split('|');
+      this.myroom = Number(paramsArray[0]);
+      this.isDoc = paramsArray.includes('doc');
     });
     this.initJanus();
     this.userVideo = this.userVideoRef.nativeElement;
@@ -48,8 +52,7 @@ export class ChatPageComponent implements OnInit {
 
   private createNewJanusSession(): void {
     const server = [
-      // TODO: change to environment variable
-      'https://d.sft.in.ua/janus'
+      environment.serverUrl + 'janus'
     ];
     this.janus = new Janus({
       server: server,
@@ -59,7 +62,10 @@ export class ChatPageComponent implements OnInit {
           opaqueId: this.opaqueId,
           success: (pluginHandle) => {
             this.sfutest = pluginHandle;
-            this.registerUser(this.myroom.toString());
+            const user = this.isDoc ?
+              `doc-${this.myroom.toString()}` :
+              this.myroom.toString();
+            this.registerUser(user);
           },
           error: (error) => {
             console.log('error', error);
@@ -114,6 +120,7 @@ export class ChatPageComponent implements OnInit {
       display: username
     };
     this.myusername = username;
+    console.log(username);
     this.sfutest.send({ message: register });
   }
 

@@ -3,7 +3,7 @@
   <div class="qr-code-wrapper">
     <qrcode [qrdata]="QRCode" [width]="100" [errorCorrectionLevel]="'M'" [elementType]="'svg'"></qrcode>
   </div>
-  <a href="{{QRCode}}">Ссылка врачу</a>
+  <a href="{{docHref}}">Ссылка врачу</a>
   <button class="btn btn-primary"
           (click)="onReadyButtonClick($event)">Готово</button>
 </div>
