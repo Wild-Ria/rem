@@ -1,5 +1,6 @@
 import {Component, ElementRef, OnInit, ViewChild} from '@angular/core';
 import {Janus} from 'janus-gateway';
+import {ActivatedRoute, Params} from '@angular/router';
 
 @Component({
   selector: 'rms-chat-page',
@@ -15,22 +16,21 @@ export class ChatPageComponent implements OnInit {
   private sfutest = null;
   private opaqueId = 'videoroomtest-' + Janus.randomString(12);
 
-  private myroom = 1234;
+  private myroom: number;
   private myusername = null;
   private myid = null;
   private mystream = null;
   private mypvtid = null;
 
-  constructor() { }
+  constructor(private route: ActivatedRoute) { }
 
   ngOnInit() {
+    this.route.queryParams.subscribe((params: Params) => {
+      this.myroom = Number(params.params.split('|')[0]);
+    });
     this.initJanus();
     this.userVideo = this.userVideoRef.nativeElement;
     this.docVideo = this.docVideoRef.nativeElement;
-  }
-
-  hideUserVideo() {
-    console.warn('hide click');
   }
 
   initJanus(): void {
@@ -59,8 +59,7 @@ export class ChatPageComponent implements OnInit {
           opaqueId: this.opaqueId,
           success: (pluginHandle) => {
             this.sfutest = pluginHandle;
-            // TODO: add real user name
-            this.registerUser('test');
+            this.registerUser(this.myroom.toString());
           },
           error: (error) => {
             console.log('error', error);
@@ -74,7 +73,6 @@ export class ChatPageComponent implements OnInit {
                 this.publishOwnFeed(true);
                 if (msg.publishers && msg.publishers.length) {
                   msg.publishers.forEach(feed => {
-                    console.log(feed);
                     const { id, display, audio, video } = feed;
                     this.newRemoteFeed(id, display, audio, video);
                   });
@@ -99,10 +97,6 @@ export class ChatPageComponent implements OnInit {
           onlocalstream: (stream: MediaStream) => {
             this.mystream = stream;
             Janus.attachMediaStream(this.userVideo, stream);
-          },
-          onremotestream: (stream) => {},
-          oncleanup: () => {
-            console.log('oncleanup');
           }
         });
       },
