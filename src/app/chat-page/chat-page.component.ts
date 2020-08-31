@@ -27,6 +27,7 @@ export class ChatPageComponent implements OnInit {
   private remoteFeed = null;
 
   public message: any = '';
+  public isUserRegistered = false;
   constructor(private route: ActivatedRoute) { }
 
   ngOnInit() {
@@ -57,6 +58,7 @@ export class ChatPageComponent implements OnInit {
   private createNewJanusSession(): void {
     const server = [
       environment.serverUrl + 'janus'
+      // 'wss://janus.conf.meetecho.com:8188/janus'
     ];
     this.janus = new Janus({
       server: server[0],
@@ -80,10 +82,10 @@ export class ChatPageComponent implements OnInit {
       opaqueId: this.opaqueId,
       success: (pluginHandle) => {
           this.sfutest = pluginHandle;
-          this.message = 'Start Process for video call';
+          this.message = 'Click create session to start';
 
           // so start connection
-          this.registerUser(this.myusername);
+          // this.registerUser(this.myusername);
       },
       error: (error) => {
           this.message = error;
@@ -168,6 +170,7 @@ export class ChatPageComponent implements OnInit {
    * @private
    */
   private processRoomStatusUpdateEvent(msg, jsep) {
+    debugger;
     if (msg['publishers']) {
       this.parseFeedList(msg['publishers']);
     }
@@ -189,7 +192,13 @@ export class ChatPageComponent implements OnInit {
         this.message = msg['error'];
 
         if (msg['error_code'] === 426) {
-            this.message = 'This is a "no such room" error: give a more meaningful description';
+            this.message = `
+                      Apparently room <${this.myroom}> (the one this demo uses as a test room)
+                      does not exist...
+                      Do you have an updated < janus.plugin.videoroom.jcfg >
+                      configuration file? If not, make sure you copy the details of room < ${this.myroom} >
+                      from that sample in your current configuration file, then restart Janus and try again.
+            `;
         }
     }
   }
@@ -272,12 +281,12 @@ export class ChatPageComponent implements OnInit {
     let register;
     register = {
       request: 'join',
-      room: this.myroom,
-      description: 'test test: ' + this.myroom,
+      room:  this.myroom,
       ptype: 'publisher',
       display: username
     };
 
+    this.isUserRegistered = true;
     this.myusername = username;
     this.sfutest.send({ message: register });
   }
