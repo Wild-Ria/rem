@@ -1,6 +1,6 @@
 <div class="container">
   <div class="video-streams-wrapper">
-    <div class="main-video-stream">Отоскоп</div>
+    <div class="main-video-stream">Отоскоп (Room Message: {{message}})</div>
     <div class="additional-video-streams">
       <div class="left-video-stream">
         <video id="doc-video" #docVideo width="100%" height="100%" autoplay playsinline></video>
@@ -11,5 +11,5 @@
     </div>
   </div>
   <button class="btn btn-primary" (click)="unpublishOwnFeed()">Скрыть меня</button>
-  <button class="btn btn-primary">Завершить сеанс</button>
+  <button class="btn btn-primary" (click)="callEnd()">Завершить сеанс</button>
 </div>
