@@ -2,6 +2,7 @@ import {Component, ElementRef, OnInit, ViewChild} from '@angular/core';
 import {Janus} from 'janus-gateway';
 import {ActivatedRoute, Params} from '@angular/router';
 import {environment} from '../../environments/environment';
+import 'webrtc-adapter';
 
 @Component({
   selector: 'rms-chat-page',
@@ -9,10 +10,10 @@ import {environment} from '../../environments/environment';
   styleUrls: ['./chat-page.component.scss']
 })
 export class ChatPageComponent implements OnInit {
-  @ViewChild('userVideo', { static: true }) userVideoRef: ElementRef;
-  @ViewChild('docVideo', { static: true }) docVideoRef: ElementRef;
-  userVideo: HTMLVideoElement;
-  docVideo: HTMLVideoElement;
+  @ViewChild('myVideo', { static: true }) myVideoRef: ElementRef;
+  @ViewChild('otherVideo', { static: true }) otherVideoRef: ElementRef;
+  localVideo: HTMLVideoElement;
+  remoteVideo: HTMLVideoElement;
   private janus = null;
   private sfutest = null;
   private opaqueId = 'videoroomtest-' + Janus.randomString(12);
@@ -24,22 +25,26 @@ export class ChatPageComponent implements OnInit {
   private mypvtid = null;
   private isDoc = false;
 
+  private remoteFeed = null;
+  public message: any = '';
+  public isUserRegistered = false;
+
   constructor(private route: ActivatedRoute) { }
 
   ngOnInit() {
     this.route.queryParams.subscribe((params: Params) => {
-      const paramsArray = params.params.split('|');
-      this.myroom = Number(paramsArray[0]);
-      this.isDoc = paramsArray.includes('doc');
+      this.myroom = Number(params.id);
+      this.isDoc = Boolean(params.doc);
+      this.myusername = Math.random().toString(36).substring(7);
     });
     this.initJanus();
-    this.userVideo = this.userVideoRef.nativeElement;
-    this.docVideo = this.docVideoRef.nativeElement;
+    this.localVideo = this.myVideoRef.nativeElement;
+    this.remoteVideo = this.otherVideoRef.nativeElement;
   }
 
   initJanus(): void {
     Janus.init({
-      debug: 'all',
+      // debug: 'all',
       callback: () => {
         if (!Janus.isWebrtcSupported()) {
           console.error('No WebRTC support... ');
@@ -52,64 +57,220 @@ export class ChatPageComponent implements OnInit {
 
   private createNewJanusSession(): void {
     const server = [
-      environment.serverUrl + 'janus'
+      environment.serverUrl + 'janus',
+      // 'wss://janus.conf.meetecho.com:8188/janus'
     ];
     this.janus = new Janus({
-      server: server,
+      server: server[0],
       success: () => {
-        this.janus.attach({
-          plugin: 'janus.plugin.videoroom',
-          opaqueId: this.opaqueId,
-          success: (pluginHandle) => {
-            this.sfutest = pluginHandle;
-            const user = this.isDoc ?
-              `doc-${this.myroom.toString()}` :
-              this.myroom.toString();
-            this.registerUser(user);
-          },
-          error: (error) => {
-            console.log('error', error);
-          },
-          onmessage: (msg, jsep) => {
-            const event = msg.videoroom;
-            switch (event) {
-              case 'joined':
-                this.myid = msg.id;
-                this.mypvtid = msg.private_id;
-                this.publishOwnFeed(true);
-                if (msg.publishers && msg.publishers.length) {
-                  msg.publishers.forEach(feed => {
-                    const { id, display, audio, video } = feed;
-                    this.newRemoteFeed(id, display, audio, video);
-                  });
-                }
-                break;
-              case 'event':
-                if (msg.publishers && msg.publishers.length) {
-                  msg.publishers.forEach(feed => {
-                    console.log(feed);
-                    const { id, display, audio, video } = feed;
-                    this.newRemoteFeed(id, display, audio, video);
-                  });
-                }
-                break;
-              case 'destroyed':
-                Janus.warn('The room has been destroyed!');
-                break;
-              default:
-                console.log('No handler for event');
-            }
-          },
-          onlocalstream: (stream: MediaStream) => {
-            this.mystream = stream;
-            Janus.attachMediaStream(this.userVideo, stream);
-          }
-        });
+        this.attachJanus();
       },
       error: (err) => {
-        console.log(err);
+        this.message = 'Error: ' + err;
       },
+      destroyed: () => {
+        window.location.reload();
+      }
     });
+  }
+
+  private attachJanus(): void {
+    // Attach to VideoRoom plugin
+    this.janus.attach({
+      plugin:  'janus.plugin.videoroom',
+      opaqueId: this.opaqueId,
+      success: (pluginHandle) => {
+        this.sfutest = pluginHandle;
+        this.message = 'Click create session to start';
+
+        // so start connection
+        // this.registerUser(this.myusername);
+      },
+      error: (error) => {
+        this.message = error;
+      },
+      consentDialog: (on) => {
+        this.message = 'Consent dialog should be ' + (on ? 'on' : 'off') + ' now';
+      },
+      iceState: (state) => {
+        this.message = 'ICE state changed to ' + state;
+      },
+      mediaState: (medium, on) => {
+        this.message = 'Janus ' + (on ? 'started' : 'stopped') + ' receiving our ' + medium;
+      },
+      webrtcState: (on) => {
+        this.message = 'Janus says our WebRTC PeerConnection is ' + (on ? 'up' : 'down') + ' now';
+      },
+      onremotestream: (stream) => {
+        // The publisher stream is sendonly, we don't expect anything here
+      },
+      oncleanup: () => {
+        this.message  = '::: Got a cleanup notification: we are unpublished now :::';
+        this.mystream = null;
+      },
+
+      onlocalstream: (stream) => {
+        this.message  = ' ::: Got a local stream :::';
+        this.mystream = stream;
+
+        const videoElement = this.getLocalVideoElm();
+        Janus.attachMediaStream(videoElement, stream);
+
+        if (
+          this.sfutest.webrtcStuff.pc.iceConnectionState !== 'completed'
+          && this.sfutest.webrtcStuff.pc.iceConnectionState !== 'connected'
+        ) {
+          this.message = 'Publishing...';
+        }
+      },
+
+      onmessage: (msg, jsep) => {
+        this.message = '::: Got a message (publisher) :::';
+
+        if (msg['videoroom']) {
+          this.parseVideoRoomEvent(msg, jsep);
+        }
+
+        if (jsep) {
+          this.connectRemoteVideo(msg, jsep);
+        }
+      }
+    });
+  }
+
+  /**
+   * Get native container for local video
+   */
+  private getLocalVideoElm(): HTMLVideoElement {
+    return this.isDoc ? this.otherVideoRef.nativeElement : this.myVideoRef.nativeElement;
+  }
+
+  private parseVideoRoomEvent(msg, jsep) {
+    switch (msg['videoroom']) {
+      case 'joined':
+        this.processJoined(msg, jsep);
+        break;
+      case 'destroyed':
+        this.message = 'The room has been destroyed!';
+        window.location.reload();
+        break;
+      case 'event':
+        this.processRoomStatusUpdateEvent(msg, jsep);
+        break;
+    }
+  }
+
+  /**
+   * Apply events updates
+   * @param msg
+   * @param jsep
+   * @private
+   */
+  private processRoomStatusUpdateEvent(msg, jsep) {
+    if (msg['publishers']) {
+      this.parseFeedList(msg['publishers']);
+    }
+
+    if (msg['leaving']) {
+      // code for deattach here
+    }
+
+    if (msg['unpublished']) {
+      if (msg['unpublished'] === 'ok') {
+        // That's us
+        this.sfutest.hangup();
+      } else {
+        // code remove feeds here
+      }
+    }
+
+    if (msg['error']) {
+      this.message = msg['error'];
+
+      if (msg['error_code'] === 426) {
+        this.message = `
+                      Apparently room <${this.myroom}> (the one this demo uses as a test room)
+                      does not exist...
+                      Do you have an updated < janus.plugin.videoroom.jcfg >
+                      configuration file? If not, make sure you copy the details of room < ${this.myroom} >
+                      from that sample in your current configuration file, then restart Janus and try again.
+            `;
+      }
+    }
+  }
+
+  /**
+   * Get native container for local video
+   */
+  private getRemoteVideoElm(): HTMLVideoElement {
+    return !this.isDoc ? this.otherVideoRef.nativeElement : this.myVideoRef.nativeElement;
+  }
+
+  /**
+   * behaviour for joining
+   * @param msg
+   * @param jsep
+   * @private
+   */
+  private processJoined(msg, jsep) {
+    this.message = 'Successfully joined room ' + msg['room'] + ' with ID ' + msg['id'];
+
+    this.myid    = msg['id'];
+    this.mypvtid = msg['private_id'];
+
+    this.publishOwnFeed(true);
+
+
+    if (msg['publishers']) {
+      this.parseFeedList(msg['publishers']);
+    }
+  }
+
+  /**
+   * Get received feed and attach them
+   * @param list
+   * @private
+   */
+  private parseFeedList(list) {
+    list.forEach (
+      (feed) => {
+        const id = feed['id'];
+        const display = feed['display'];
+        const audio = feed['audio_codec'];
+        const video = feed['video_codec'];
+
+        this.message = ' >> [' + id + '] ' + display + ' (audio: ' + audio + ', video: ' + video + ')';
+
+        this.newRemoteFeed(id, display, audio, video);
+      }
+    );
+  }
+
+  private connectRemoteVideo(msg, jsep) {
+    this.message = 'Handling SDP as well...';
+    this.sfutest.handleRemoteJsep({ jsep: jsep });
+
+    const audio = msg['audio_codec'];
+    if (
+      this.mystream
+      && this.mystream.getAudioTracks()
+      && this.mystream.getAudioTracks().length > 0
+      && !audio
+    ) {
+      // Audio has been rejected
+      this.message = 'Our audio stream has been rejected, viewers won\'t hear us';
+    }
+
+    const video = msg['video_codec'];
+    if (
+      this.mystream
+      && this.mystream.getVideoTracks()
+      && this.mystream.getVideoTracks().length > 0
+      && !video
+    ) {
+      // Audio has been rejected
+      this.message = 'Our video stream has been rejected, viewers won\'t see us';
+    }
   }
 
   private registerUser(username): void {
@@ -119,12 +280,12 @@ export class ChatPageComponent implements OnInit {
       ptype: 'publisher',
       display: username
     };
+    this.isUserRegistered = true;
     this.myusername = username;
-    console.log(username);
     this.sfutest.send({ message: register });
   }
 
-  public publishOwnFeed(useAudio): void {
+  public publishOwnFeed(useAudio: boolean): void {
     this.sfutest.createOffer({
       media: {
         audioRecv: false,
@@ -133,7 +294,7 @@ export class ChatPageComponent implements OnInit {
         videoSend: true
       },
       success: (jsep) => {
-        Janus.debug('Got publisher SDP!', jsep);
+        this.message = 'Got publisher SDP!';
         const publish = {
           request: 'configure',
           audio: useAudio,
@@ -142,7 +303,10 @@ export class ChatPageComponent implements OnInit {
         this.sfutest.send({ message: publish, jsep: jsep });
       },
       error: (error) => {
-        Janus.error('WebRTC error:', error);
+        this.message = 'WebRTC error:' + error.message;
+        if (useAudio) {
+          this.publishOwnFeed(false);
+        }
       }
     });
   }
@@ -153,12 +317,12 @@ export class ChatPageComponent implements OnInit {
   }
 
   public newRemoteFeed(id, display, audio, video): void {
-    let remoteFeed = null;
     this.janus.attach({
       plugin: 'janus.plugin.videoroom',
       opaqueId: this.opaqueId,
       success: (pluginHandle) => {
-        remoteFeed = pluginHandle;
+        this.remoteFeed = pluginHandle;
+        this.remoteFeed.simulcastStarted = false;
         const subscribe = {
           request: 'join',
           room: this.myroom,
@@ -167,28 +331,97 @@ export class ChatPageComponent implements OnInit {
           private_id: this.mypvtid
         };
 
-        remoteFeed.videoCodec = video;
-        remoteFeed.send({ message: subscribe });
+        if (
+          Janus.webRTCAdapter.browserDetails.browser === 'safari'
+          && (
+            video === 'vp9'
+            ||
+            (
+              video === 'vp8'
+              &&
+              !Janus.safariVp8
+            )
+          )
+        ) {
+          if (video) {
+            video = video.toUpperCase();
+          }
+          this.message = 'Publisher is using ' + video + ', but Safari doesn\'t support it: disabling video';
+          subscribe['offer_video'] = false;
+        }
+
+        this.remoteFeed.videoCodec = video;
+        this.remoteFeed.send({ message: subscribe });
       },
       error: (error) => {
         Janus.error('  -- Error attaching plugin...', error);
       },
       onmessage: (msg, jsep) => {
-        console.log('onmessage', msg, jsep);
+        const event = msg['videoroom'];
+        if (event === 'attached') {
+          this.remoteFeed.rfid = msg['id'];
+          this.remoteFeed.rfdisplay = msg['display'];
+          if (!this.remoteFeed.spinner) {
+            const target = this.getRemoteVideoElm();
+          } else {
+          }
+        } else if (event === 'event') {
+          // Check if we got an event on a simulcast-related event from this publisher
+        } else {
+          // What has just happened?
+        }
+        if (jsep) {
+          this.message = 'Handling SDP as well...';
+          // Answer and attach
+          this.remoteFeed.createAnswer(
+            {
+              jsep: jsep,
+              // Add data:true here if you want to subscribe to datachannels as well
+              // (obviously only works if the publisher offered them in the first place)
+              media: { audioSend: false, videoSend: false },	// We want recvonly audio/video
+              success: (jsep2) => {
+                this.message = 'Got SDP!';
+                const body = { request: 'start', room: this.myroom };
+                this.remoteFeed.send({ message: body, jsep: jsep2 });
+              },
+              error: function(error) {
+                this.message = 'WebRTC error:';
+              }
+            });
+        }
+      },
+      iceState: (state) => {
+        this.message = 'ICE state of this WebRTC PeerConnection (feed #' + this.remoteFeed.rfindex + ') changed to ' + state;
       },
       webrtcState: (on) => {
-        console.log('webrtcState', on);
+        this.message = 'Janus says this WebRTC PeerConnection (feed #' + this.remoteFeed.rfindex + ') is ' + (on ? 'up' : 'down') + ' now';
       },
       onlocalstream: (stream) => {
         console.log('onlocalstream', stream);
       },
       onremotestream: (stream) => {
-        Janus.attachMediaStream(this.docVideo, stream);
+        if (this.remoteFeed.spinner) {
+          this.remoteFeed.spinner.stop();
+        }
+        this.remoteFeed.spinner = null;
+
+        Janus.attachMediaStream(this.getRemoteVideoElm(), stream);
       },
       oncleanup: () => {
-        console.log('oncleanup');
+        this.message = '::: Got a cleanup notification (remote feed)';
+        if (this.remoteFeed.spinner) {
+          this.remoteFeed.spinner.stop();
+        }
+        this.remoteFeed.spinner = null;
+        this.remoteFeed.simulcastStarted = false;
       }
     });
+  }
+
+  public callEnd() {
+    if (this.janus) {
+      this.janus.destroy();
+    }
   }
 
 }
