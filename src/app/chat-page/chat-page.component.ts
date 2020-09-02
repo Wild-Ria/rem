@@ -3,6 +3,7 @@ import {Janus} from 'janus-gateway';
 import {ActivatedRoute, Params} from '@angular/router';
 import {environment} from '../../environments/environment';
 import 'webrtc-adapter';
+import {userType} from '../shared/interfaces';
 
 @Component({
   selector: 'rms-chat-page',
@@ -12,8 +13,7 @@ import 'webrtc-adapter';
 export class ChatPageComponent implements OnInit {
   @ViewChild('myVideo', { static: true }) myVideoRef: ElementRef;
   @ViewChild('otherVideo', { static: true }) otherVideoRef: ElementRef;
-  localVideo: HTMLVideoElement;
-  remoteVideo: HTMLVideoElement;
+  @ViewChild('deviceVideo', { static: true }) deviceVideoRef: ElementRef;
   private janus = null;
   private sfutest = null;
   private opaqueId = 'videoroomtest-' + Janus.randomString(12);
@@ -23,7 +23,7 @@ export class ChatPageComponent implements OnInit {
   private myid = null;
   private mystream = null;
   private mypvtid = null;
-  private isDoc = false;
+  private user: userType;
 
   private remoteFeed = null;
   public message: any = '';
@@ -34,12 +34,10 @@ export class ChatPageComponent implements OnInit {
   ngOnInit() {
     this.route.queryParams.subscribe((params: Params) => {
       this.myroom = Number(params.id);
-      this.isDoc = Boolean(params.doc);
-      this.myusername = Math.random().toString(36).substring(7);
+      this.user = params.user;
+      this.myusername = this.user;
     });
     this.initJanus();
-    this.localVideo = this.myVideoRef.nativeElement;
-    this.remoteVideo = this.otherVideoRef.nativeElement;
   }
 
   initJanus(): void {
@@ -84,6 +82,9 @@ export class ChatPageComponent implements OnInit {
         this.message = 'Click create session to start';
 
         // so start connection
+        if (this.user === userType.DEVICE) {
+          this.registerUser(this.myusername);
+        }
         // this.registerUser(this.myusername);
       },
       error: (error) => {
@@ -113,7 +114,7 @@ export class ChatPageComponent implements OnInit {
         this.message  = ' ::: Got a local stream :::';
         this.mystream = stream;
 
-        const videoElement = this.getLocalVideoElm();
+        const videoElement = this.getVideoElm(this.user);
         Janus.attachMediaStream(videoElement, stream);
 
         if (
@@ -136,13 +137,6 @@ export class ChatPageComponent implements OnInit {
         }
       }
     });
-  }
-
-  /**
-   * Get native container for local video
-   */
-  private getLocalVideoElm(): HTMLVideoElement {
-    return this.isDoc ? this.otherVideoRef.nativeElement : this.myVideoRef.nativeElement;
   }
 
   private parseVideoRoomEvent(msg, jsep) {
@@ -202,8 +196,16 @@ export class ChatPageComponent implements OnInit {
   /**
    * Get native container for local video
    */
-  private getRemoteVideoElm(): HTMLVideoElement {
-    return !this.isDoc ? this.otherVideoRef.nativeElement : this.myVideoRef.nativeElement;
+  private getVideoElm(user: userType): HTMLVideoElement {
+    switch (user) {
+      case userType.DOC:
+        return this.otherVideoRef.nativeElement;
+      case userType.USER:
+        return this.myVideoRef.nativeElement;
+      default:
+        return this.deviceVideoRef.nativeElement;
+    }
+    // return !this.isDoc ? this.otherVideoRef.nativeElement : this.myVideoRef.nativeElement;
   }
 
   /**
@@ -280,7 +282,9 @@ export class ChatPageComponent implements OnInit {
       ptype: 'publisher',
       display: username
     };
-    this.isUserRegistered = true;
+    if (this.user !== userType.DEVICE) {
+      this.isUserRegistered = true;
+    }
     this.myusername = username;
     this.sfutest.send({ message: register });
   }
@@ -331,25 +335,6 @@ export class ChatPageComponent implements OnInit {
           private_id: this.mypvtid
         };
 
-        if (
-          Janus.webRTCAdapter.browserDetails.browser === 'safari'
-          && (
-            video === 'vp9'
-            ||
-            (
-              video === 'vp8'
-              &&
-              !Janus.safariVp8
-            )
-          )
-        ) {
-          if (video) {
-            video = video.toUpperCase();
-          }
-          this.message = 'Publisher is using ' + video + ', but Safari doesn\'t support it: disabling video';
-          subscribe['offer_video'] = false;
-        }
-
         this.remoteFeed.videoCodec = video;
         this.remoteFeed.send({ message: subscribe });
       },
@@ -362,7 +347,7 @@ export class ChatPageComponent implements OnInit {
           this.remoteFeed.rfid = msg['id'];
           this.remoteFeed.rfdisplay = msg['display'];
           if (!this.remoteFeed.spinner) {
-            const target = this.getRemoteVideoElm();
+            const target = this.getVideoElm(this.remoteFeed.rfdisplay);
           } else {
           }
         } else if (event === 'event') {
@@ -404,8 +389,7 @@ export class ChatPageComponent implements OnInit {
           this.remoteFeed.spinner.stop();
         }
         this.remoteFeed.spinner = null;
-
-        Janus.attachMediaStream(this.getRemoteVideoElm(), stream);
+        Janus.attachMediaStream(this.getVideoElm(this.remoteFeed.rfdisplay), stream);
       },
       oncleanup: () => {
         this.message = '::: Got a cleanup notification (remote feed)';
