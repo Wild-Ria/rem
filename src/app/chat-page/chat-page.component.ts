@@ -370,7 +370,7 @@ export class ChatPageComponent implements OnInit {
                 this.remoteFeed.send({ message: body, jsep: jsep2 });
               },
               error: function(error) {
-                this.message = 'WebRTC error:';
+                this.message = `WebRTC error: ${error}`;
               }
             });
         }
